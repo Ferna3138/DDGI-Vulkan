@@ -1,0 +1,11 @@
+:: Ray Tracing Files
+C:\VulkanSDK\1.3.275.0\Bin\glslc.exe --target-env=vulkan1.2 D:\RayTracing\NVPro\vk_raytracing_tutorial_KHR\ray_tracing__simple\shaders\raytraceDDGI.rgen -o D:\RayTracing\NVPro\vk_raytracing_tutorial_KHR\ray_tracing__simple\spv\raytraceDDGI.rgen.spv
+C:\VulkanSDK\1.3.275.0\Bin\glslc.exe --target-env=vulkan1.2 D:\RayTracing\NVPro\vk_raytracing_tutorial_KHR\ray_tracing__simple\shaders\raytraceDDGI.rchit -o D:\RayTracing\NVPro\vk_raytracing_tutorial_KHR\ray_tracing__simple\spv\raytraceDDGI.rchit.spv
+C:\VulkanSDK\1.3.275.0\Bin\glslc.exe --target-env=vulkan1.2 D:\RayTracing\NVPro\vk_raytracing_tutorial_KHR\ray_tracing__simple\shaders\raytraceDDGI.rmiss -o D:\RayTracing\NVPro\vk_raytracing_tutorial_KHR\ray_tracing__simple\spv\raytraceDDGI.rmiss.spv
+
+:: Compute Shaders
+C:\VulkanSDK\1.3.275.0\Bin\glslc.exe --target-env=vulkan1.2 -fshader-stage=compute D:\RayTracing\NVPro\vk_raytracing_tutorial_KHR\ray_tracing__simple\shaders\probeOffsets.glsl -o D:\RayTracing\NVPro\vk_raytracing_tutorial_KHR\ray_tracing__simple\spv\probeOffsets.glsl.spv
+C:\VulkanSDK\1.3.275.0\Bin\glslc.exe --target-env=vulkan1.2 -fshader-stage=compute D:\RayTracing\NVPro\vk_raytracing_tutorial_KHR\ray_tracing__simple\shaders\probeStatus.glsl -o D:\RayTracing\NVPro\vk_raytracing_tutorial_KHR\ray_tracing__simple\spv\probeStatus.glsl.spv
+C:\VulkanSDK\1.3.275.0\Bin\glslc.exe --target-env=vulkan1.2 -fshader-stage=compute D:\RayTracing\NVPro\vk_raytracing_tutorial_KHR\ray_tracing__simple\shaders\probeUpdateIrradiance.glsl -o D:\RayTracing\NVPro\vk_raytracing_tutorial_KHR\ray_tracing__simple\spv\probeUpdateIrradiance.glsl.spv
+C:\VulkanSDK\1.3.275.0\Bin\glslc.exe --target-env=vulkan1.2 -fshader-stage=compute D:\RayTracing\NVPro\vk_raytracing_tutorial_KHR\ray_tracing__simple\shaders\probeUpdateVisibility.glsl -o D:\RayTracing\NVPro\vk_raytracing_tutorial_KHR\ray_tracing__simple\spv\probeUpdateVisibility.glsl.spv
+C:\VulkanSDK\1.3.275.0\Bin\glslc.exe --target-env=vulkan1.2 -fshader-stage=compute D:\RayTracing\NVPro\vk_raytracing_tutorial_KHR\ray_tracing__simple\shaders\sampleIrradiance.glsl -o D:\RayTracing\NVPro\vk_raytracing_tutorial_KHR\ray_tracing__simple\spv\sampleIrradiance.glsl.spv
