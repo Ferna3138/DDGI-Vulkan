@@ -36,6 +36,8 @@ layout(binding = eTextures) uniform sampler2D[] textureSamplers;
 
 
 void main() {
+    float lightRadius = 10;
+
   // Material of the object
   ObjDesc    objResource = objDesc.i[pcRaster.objIndex];
   MatIndices matIndices  = MatIndices(objResource.materialIndexAddress);
@@ -52,7 +54,8 @@ void main() {
   if(pcRaster.lightType == 0) {
     vec3  lDir     = pcRaster.lightPosition - i_worldPos;
     float d        = length(lDir);
-    lightIntensity = pcRaster.lightIntensity / (d * d);
+    float attenuation = max(1.0 - (d / lightRadius), 0.0);
+    lightIntensity = pcRaster.lightIntensity * attenuation / (d * d);
     L              = normalize(lDir);
   }
   else {
@@ -70,16 +73,7 @@ void main() {
 
   // Specular
   vec3 specular = computeSpecular(mat, i_viewDir, L, N);
-  
-  /*
-  vec4 clipPos = uni.viewProj * vec4(i_worldPos, 1.0);
-  vec3 ndcPos = clipPos.xyz / clipPos.w;
-  float normalizedDepth = (ndcPos.z + 1.0) * 0.5;
-
-  o_color = vec4(vec3(normalizedDepth), 1.0);*/
-  
 
   // Result
   o_color = vec4(lightIntensity * (diffuse + specular), 1);
-  //o_color = vec4(i_worldNrm, 1.0);
 }

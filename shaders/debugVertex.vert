@@ -43,6 +43,7 @@ void main() {
     vec3 cameraRightWorld = vec3(uni.viewInverse[0][0], uni.viewInverse[1][0], uni.viewInverse[2][0]);
     vec3 cameraUpWorld = vec3(uni.viewInverse[0][1], uni.viewInverse[1][1], uni.viewInverse[2][1]);
 
+
     vec3 positionWorld = probe_position 
                         + fragOffset.x * probe_sphere_scale * cameraRightWorld 
                         + fragOffset.y * probe_sphere_scale * cameraUpWorld;

@@ -280,7 +280,7 @@ vec3 sample_irradiance(vec3 world_position, vec3 normal, vec3 camera_position) {
   for(int i = 0; i < 8; ++i) {
     ivec3 offset           = ivec3(i, i >> 1, i >> 2) & ivec3(1);
     ivec3 probe_grid_coord = clamp(base_grid_indices + offset, ivec3(0), probe_counts - ivec3(1));
-    int   probe_index      = probe_indices_to_index(probe_grid_coord);
+    int   probe_index      = probe_indices_to_index(probe_grid_coord);  
 
     
     vec3 probe_pos = grid_indices_to_world(probe_grid_coord, probe_index); // World position of the current probe
@@ -299,31 +299,31 @@ vec3 sample_irradiance(vec3 world_position, vec3 normal, vec3 camera_position) {
     float distance_to_biased_point        = length(probe_to_biased_point_direction);
     probe_to_biased_point_direction *= 1.0 / distance_to_biased_point;
 
-    // Visibility
-    if(use_visibility()) {
-      vec2 uv = get_probe_uv(probe_to_biased_point_direction, probe_index, visibility_texture_width,
-                             visibility_texture_height, visibility_side_length);
+            // Visibility
+            if(use_visibility()) {
+              vec2 uv = get_probe_uv(probe_to_biased_point_direction, probe_index, visibility_texture_width,
+                                     visibility_texture_height, visibility_side_length);
 
-      vec2 visibility = textureLod(global_textures[nonuniformEXT(grid_visibility_texture_index)], uv, 0).rg;
+              vec2 visibility = textureLod(global_textures[nonuniformEXT(grid_visibility_texture_index)], uv, 0).rg;
 
-      float mean_distance_to_occluder = visibility.x;
+              float mean_distance_to_occluder = visibility.x;
 
-      float chebyshev_weight = 1.0;
-      if(distance_to_biased_point > mean_distance_to_occluder) {
-        float variance = abs((visibility.x * visibility.x) - visibility.y);
+              float chebyshev_weight = 1.0;
+              if(distance_to_biased_point > mean_distance_to_occluder) {
+                float variance = abs((visibility.x * visibility.x) - visibility.y);
         
-        const float distance_diff = distance_to_biased_point - mean_distance_to_occluder;
-        chebyshev_weight          = variance / (variance + (distance_diff * distance_diff));
+                const float distance_diff = distance_to_biased_point - mean_distance_to_occluder;
+                chebyshev_weight          = variance / (variance + (distance_diff * distance_diff));
 
-        // Increase contrast in the weight
-        chebyshev_weight = max((chebyshev_weight * chebyshev_weight * chebyshev_weight), 0.0f);
-      }
+                // Increase contrast in the weight
+                chebyshev_weight = max((chebyshev_weight * chebyshev_weight * chebyshev_weight), 0.0f);
+              }
 
-      // Avoid visibility weights ever going all of the way to zero because when *no* probe has
-      // visibility we need some fallback value.
-      chebyshev_weight = max(0.05f, chebyshev_weight);
-      weight *= chebyshev_weight;
-    }
+              // Avoid visibility weights ever going all of the way to zero because when *no* probe has
+              // visibility we need some fallback value.
+              chebyshev_weight = max(0.05f, chebyshev_weight);
+              weight *= chebyshev_weight;
+            }
 
     // Avoid zero weight
     weight = max(0.000001, weight);
@@ -339,9 +339,9 @@ vec3 sample_irradiance(vec3 world_position, vec3 normal, vec3 camera_position) {
 
     vec3 probe_irradiance = textureLod(global_textures[nonuniformEXT(grid_irradiance_output_index)], uv, 0).rgb;
 
-    if(use_perceptual_encoding()) {
-      probe_irradiance = pow(probe_irradiance, vec3(0.5f * 5.0f));
-    }
+                if(use_perceptual_encoding()) {
+                  probe_irradiance = pow(probe_irradiance, vec3(0.5f * 5.0f));
+                }
 
     // Trilinear weights
     weight *= trilinear.x * trilinear.y * trilinear.z + 0.001f;
@@ -390,6 +390,9 @@ vec2 octahedral_encode(vec3 n) {
   return (n.z < 0.0f) ? ((1.0 - abs(p.yx)) * sign_not_zero2(p)) : p;
 }
 
+
+
+
 /*
 vec2 uv_nearest(ivec2 pixel, vec2 texture_size) {
   vec2 uv = floor(pixel) + 0.5f;
@@ -397,7 +400,8 @@ vec2 uv_nearest(ivec2 pixel, vec2 texture_size) {
 }*/
 
 
+
 vec2 uv_nearest(ivec2 pixel, vec2 texture_size) {
-  vec2 uv = vec2(pixel) + vec2(0.5);
+  vec2 uv = vec2(pixel) + 0.5;
   return uv / texture_size;
 }

@@ -57,7 +57,7 @@ public:
       {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1},  // Identity matrix
       {-4.0f, 1.f, 0.3f},                                 // light position
       0,                                                 // instance Id
-      10.f,                                             // light intensity
+      5.f,                                             // light intensity
       0                                                  // light type
   };
 
@@ -159,8 +159,19 @@ public:
 
   struct renderSceneDDGI {
     bool      gi_show_probes = false;
-    glm::vec3 gi_probe_grid_position{-56.0f, -2.0f, -35.f};
-    glm::vec3 gi_probe_spacing{6.f, 2.5f, 4.f};
+    //glm::vec3 gi_probe_grid_position{-56.0f, -2.0f, -35.f};
+    //glm::vec3 gi_probe_spacing{6.f, 2.5f, 4.f};
+
+    //Scene scale = 1
+    //glm::vec3 gi_probe_grid_position{-16.0f, -2.0f, -11.47f};
+    //glm::vec3 gi_probe_spacing{1.7f, 1.12f, 1.27f};   
+    
+
+    //Scene scale = 1.5
+    glm::vec3 gi_probe_grid_position{-24.0f, -2.0f, -13.804f};
+    glm::vec3 gi_probe_spacing{2.5f, 1.120f, 2.25f};
+
+
     float     gi_probe_sphere_scale          = 0.1f;
     float     gi_max_probe_offset            = 0.5f;
     float     gi_self_shadow_bias            = 0.3f;
@@ -173,12 +184,12 @@ public:
     bool      gi_use_visibility              = true;
     bool      gi_use_backface_smoothing      = true;
     bool      gi_use_perceptual_encoding     = true;
-    bool      gi_use_backface_blending       = true;
-    bool      gi_use_probe_offsetting        = true;
+    bool      gi_use_backface_blending       = false;
+    bool      gi_use_probe_offsetting        = false;
     bool      gi_recalculate_offsets         = false;  // When moving grid or changing spaces, recalculate offsets.
     bool      gi_use_probe_status            = false;
-    bool      gi_use_half_resolution         = true;
-    bool      gi_use_infinite_bounces        = true;
+    bool      gi_use_half_resolution         = false;
+    bool      gi_use_infinite_bounces        = false;
     float     gi_infinite_bounces_multiplier = 0.75f;
     int32_t   gi_per_frame_probes_update     = 1000;
   };
@@ -187,7 +198,7 @@ public:
 
   uint32_t probe_count_x = 20;
   uint32_t probe_count_y = 20;
-  uint32_t probe_count_z = 18;
+  uint32_t probe_count_z = 12;
 
   int32_t per_frame_probe_updates = 0;
   int32_t probe_update_offset     = 0;
@@ -277,6 +288,7 @@ public:
 
   // Push constant for ray tracer
   PushConstantOffset m_pcProbeOffsets{};
+  PushConstantStatus m_pcProbeStatus{};
   PushConstantSample m_pcSampleIrradiance{};
 
   // Textures Vector

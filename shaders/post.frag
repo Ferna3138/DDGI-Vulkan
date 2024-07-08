@@ -32,9 +32,9 @@ void main() {
     
     if (pushc.useIndirect == 1) {
         vec4 noisyColor = texture(noisyTxt, uv).rgba;
+        //vec4 indirectColor = texture(global_textures[6], uv).rgba;
         vec4 indirectColor = texture(global_textures[6], uv).rgba;
 
-        //vec4 blendedColor = (noisyColor + indirectColor);
         // Scale the indirect color to enhance its contribution
         float indirectScale = 3.0; // Adjust this value to increase the impact
         vec4 enhancedIndirectColor = indirectColor * indirectScale;
@@ -56,20 +56,22 @@ void main() {
         finalColor = pow(texture(noisyTxt, uv).rgba, vec4(gamma));
     }
 
-    fragColor = finalColor;
-    /*
+    
+    //fragColor = finalColor;
+    
+    
     
     // Determine the overlay position and size
-    float overlaySize = 1.0 / 4.0; // Overlay size (1/8th of the screen)
+    float overlaySize = 1.0 / 3.0; // Overlay size (1/8th of the screen)
     vec2 overlayStart = vec2(0.0, 0.0); // Lower-left corner
 
     if (uv.x < overlaySize && uv.y < overlaySize) {
         // Map the UV coordinates to the overlay texture space
         vec2 overlayUV = uv / overlaySize;
-        vec4 overlayColor = texture(indirectTxt, overlayUV).rgba;
+        vec4 overlayColor = texture(global_textures[6], overlayUV).rgba;
         fragColor = overlayColor;
     } else {
         fragColor = finalColor;
-    }*/
+    }
 
 }

@@ -425,6 +425,15 @@ void HelloVulkan::destroyResources() {
   vkDestroyFramebuffer(m_device, m_DDGIFramebuffer, nullptr);
 
 
+  // Debug
+  m_alloc.destroy(m_debugTexture);
+  m_alloc.destroy(m_debugDepth);
+  vkDestroyPipeline(m_device, m_debugPipeline, nullptr);
+  vkDestroyPipelineLayout(m_device, m_debugPipelineLayout, nullptr);
+  vkDestroyRenderPass(m_device, m_debugRenderPass, nullptr);
+  vkDestroyFramebuffer(m_device, m_debugFramebuffer, nullptr);
+
+
   // #VKRay
   m_rtBuilder.destroy();
   vkDestroyPipeline(m_device, m_rtPipeline, nullptr);
@@ -618,7 +627,7 @@ void HelloVulkan::updatePostDescriptorSet() {
   VkWriteDescriptorSet writeDescriptorSets[3];
   writeDescriptorSets[0] = m_postDescSetLayoutBind.makeWrite(m_postDescSet, 0, &m_offscreenColor.descriptor);
   // Descriptor info for indirect texture
-  writeDescriptorSets[1] = m_postDescSetLayoutBind.makeWrite(m_postDescSet, 1, &m_radianceTexture.descriptor);
+  writeDescriptorSets[1] = m_postDescSetLayoutBind.makeWrite(m_postDescSet, 1, &m_indirectTexture.descriptor);
 
   writeDescriptorSets[2] = m_postDescSetLayoutBind.makeWrite(m_postDescSet, 2, &m_debugTexture.descriptor);
   //writeDescriptorSets[2] = m_postDescSetLayoutBind.makeWrite(m_postDescSet, 2, &m_debugColor.descriptor);
@@ -1540,20 +1549,15 @@ void HelloVulkan::DDGIBegin(const VkCommandBuffer& cmdBuf, const glm::vec4& clea
   // Sample Irradiance Push Constant
   m_pcSampleIrradiance.output_resolution_half = (scene.gi_use_half_resolution == true) ? 1 : 0;
 
-  uint32_t   first_frame                = 0;
+  uint32_t   first_frame;
   static int offsets_calculations_count = 24;
+
   if(scene.gi_recalculate_offsets) {
     offsets_calculations_count = 24;
   }
 
-  if(offsets_calculations_count >= 0) {
-      --offsets_calculations_count;
-      first_frame = offsets_calculations_count == 23 ? 1 : 0;
-  }
 
-  m_pcProbeOffsets.first_frame = first_frame;
 
-  
   {
     nvvk::CommandPool genCmdBuf(m_device, m_graphicsQueueIndex);
     auto              cmdBuf = genCmdBuf.createCommandBuffer();
@@ -1567,7 +1571,7 @@ void HelloVulkan::DDGIBegin(const VkCommandBuffer& cmdBuf, const glm::vec4& clea
   vkCmdPushConstants(cmdBuf, m_DDGIPipelineLayout, VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR, 0, sizeof(PushConstantRay), &m_pcRay);
   const uint32_t probe_count = offsets_calculations_count >= 0 ? get_total_probes() : per_frame_probe_updates;
   vkCmdTraceRaysKHR(cmdBuf, &m_DDGIrgenRegion, &m_DDGImissRegion, &m_DDGIhitRegion, &m_DDGIcallRegion, probe_rays, probe_count, 1);
-  
+
   {
     nvvk::CommandPool genCmdBuf(m_device, m_graphicsQueueIndex);
     auto              cmdBuf = genCmdBuf.createCommandBuffer();
@@ -1577,29 +1581,32 @@ void HelloVulkan::DDGIBegin(const VkCommandBuffer& cmdBuf, const glm::vec4& clea
   m_debug.endLabel(cmdBuf);
 
 
-  
-  if(offsets_calculations_count >= 0){
-      --offsets_calculations_count;
+  if(offsets_calculations_count >= 0) {
+    --offsets_calculations_count;
+    first_frame = offsets_calculations_count == 23 ? 1 : 0;
 
-      m_debug.beginLabel(cmdBuf, "Offsets Compute Begin");
+    m_pcProbeOffsets.first_frame = first_frame;
 
-      {
-          nvvk::CommandPool genCmdBuf(m_device, m_graphicsQueueIndex);
-          auto              cmdBuf = genCmdBuf.createCommandBuffer();
-          nvvk::cmdBarrierImageLayout(cmdBuf, m_offsetsTexture.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
-          genCmdBuf.submitAndWait(cmdBuf);
-      }
+    m_debug.beginLabel(cmdBuf, "Offsets Compute Begin");
 
-      // Probe Offsets Compute Pipeline
-      vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_COMPUTE, m_probeOffsetsPipeline);
-      vkCmdBindDescriptorSets(cmdBuf, VK_PIPELINE_BIND_POINT_COMPUTE, m_probeOffsetsPipelineLayout, 0, (uint32_t)descSets.size(), descSets.data(), 0, nullptr);
-      vkCmdPushConstants(cmdBuf, m_probeOffsetsPipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(PushConstantOffset), &m_pcProbeOffsets);
-      vkCmdDispatch(cmdBuf, glm::ceil(probe_count / 32.0f), 1, 1);
+    {
+      nvvk::CommandPool genCmdBuf(m_device, m_graphicsQueueIndex);
+      auto              cmdBuf = genCmdBuf.createCommandBuffer();
+      nvvk::cmdBarrierImageLayout(cmdBuf, m_offsetsTexture.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
+      genCmdBuf.submitAndWait(cmdBuf);
+    }
 
-      m_debug.endLabel(cmdBuf);
+    // Probe Offsets Compute Pipeline
+    vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_COMPUTE, m_probeOffsetsPipeline);
+    vkCmdBindDescriptorSets(cmdBuf, VK_PIPELINE_BIND_POINT_COMPUTE, m_probeOffsetsPipelineLayout, 0,
+                            (uint32_t)descSets.size(), descSets.data(), 0, nullptr);
+    vkCmdPushConstants(cmdBuf, m_probeOffsetsPipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(PushConstantOffset),
+                       &m_pcProbeOffsets);
+    vkCmdDispatch(cmdBuf, glm::ceil(probe_count / 32.0f), 1, 1);
+
+    m_debug.endLabel(cmdBuf);
   }
 
-  
 
   m_debug.beginLabel(cmdBuf, "Status Compute Begin");
   {
@@ -1611,10 +1618,12 @@ void HelloVulkan::DDGIBegin(const VkCommandBuffer& cmdBuf, const glm::vec4& clea
   }
   // Probe Status
   vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_COMPUTE, m_probeStatusPipeline);
-  vkCmdBindDescriptorSets(cmdBuf, VK_PIPELINE_BIND_POINT_COMPUTE, m_probeStatusPipelineLayout, 0, (uint32_t)descSets.size(), descSets.data(), 0, nullptr);
+  vkCmdBindDescriptorSets(cmdBuf, VK_PIPELINE_BIND_POINT_COMPUTE, m_probeStatusPipelineLayout, 0,
+                          (uint32_t)descSets.size(), descSets.data(), 0, nullptr);
   first_frame = 0;
-  vkCmdPushConstants(cmdBuf, m_probeStatusPipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(PushConstantOffset), &m_pcProbeOffsets);
-  vkCmdDispatch(cmdBuf, glm::ceil( probe_count / 32.0f ), 1, 1);
+  m_pcProbeStatus.first_frame = first_frame;
+  vkCmdPushConstants(cmdBuf, m_probeStatusPipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(PushConstantStatus), &m_pcProbeStatus);
+  vkCmdDispatch(cmdBuf, glm::ceil(probe_count / 32.0f), 1, 1);
 
   m_debug.endLabel(cmdBuf);
 
@@ -1914,7 +1923,6 @@ void HelloVulkan::updateDDGIConstantsBuffer(const VkCommandBuffer& cmdBuf, rende
   hostDDGIConstBuffer.irradiance_texture_height = irradiance_atlas_height;
   hostDDGIConstBuffer.irradiance_side_length    = irradiance_probe_size;
   hostDDGIConstBuffer.probe_rays                = probe_rays;
-
   hostDDGIConstBuffer.visibility_texture_width  = visibility_atlas_width;
   hostDDGIConstBuffer.visibility_texture_height = visibility_atlas_height;
   hostDDGIConstBuffer.visibility_side_length    = visibility_probe_size;
@@ -2076,69 +2084,6 @@ nvvk::Image HelloVulkan::createStorageImage(const VkCommandBuffer& cmdBuf,
 }
 
 
-// Function to generate a random float between min and max
-float HelloVulkan::randomFloat(float min, float max) {
-  return min + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / (max - min)));
-}
-
-// Function to generate a random unit vector (axis of rotation)
-glm::vec3 HelloVulkan::randomUnitVector() {
-  float theta  = randomFloat(0.0f, 2.0f * glm::pi<float>());  // Random angle in radians
-  float z      = randomFloat(-1.0f, 1.0f);                    // Random z coordinate between -1 and 1
-  float radius = sqrt(1.0f - z * z);                          // Radius in the x-y plane
-
-  float x = radius * cos(theta);
-  float y = radius * sin(theta);
-
-  return glm::vec3(x, y, z);
-}
-
-// Function to generate a random rotation matrix
-glm::mat4 HelloVulkan::randomRotationMatrix() {
-  glm::vec3 axis  = randomUnitVector();
-  float     angle = randomFloat(0.0f, 2.0f * glm::pi<float>());  // Random angle in radians
-  return glm::rotate(glm::mat4(1.0f), angle, axis);
-}
-
-
-glm::mat4 HelloVulkan::glms_euler_xyz(glm::vec3 angles) {
-  glm::mat4 dest = glm::mat4(1.0f);
-  glm_euler_xyz2(angles, dest);
-  return dest;
-}
-
-void HelloVulkan::glm_euler_xyz2(glm::vec3 angles, glm::mat4 dest) {
-  float cx, cy, cz, sx, sy, sz, czsx, cxcz, sysz;
-
-  sx = sinf(angles.x);
-  cx = cosf(angles.x);
-  sy = sinf(angles.y);
-  cy = cosf(angles.y);
-  sz = sinf(angles.z);
-  cz = cosf(angles.z);
-
-  czsx = cz * sx;
-  cxcz = cx * cz;
-  sysz = sy * sz;
-
-  dest[0][0] = cy * cz;
-  dest[0][1] = czsx * sy + cx * sz;
-  dest[0][2] = -cxcz * sy + sx * sz;
-  dest[1][0] = -cy * sz;
-  dest[1][1] = cxcz - sx * sysz;
-  dest[1][2] = czsx + cx * sysz;
-  dest[2][0] = sy;
-  dest[2][1] = -cy * sx;
-  dest[2][2] = cx * cy;
-  dest[0][3] = 0.0f;
-  dest[1][3] = 0.0f;
-  dest[2][3] = 0.0f;
-  dest[3][0] = 0.0f;
-  dest[3][1] = 0.0f;
-  dest[3][2] = 0.0f;
-  dest[3][3] = 1.0f;
-}
-
 
 void HelloVulkan::createDebugRender() {
   m_alloc.destroy(m_debugTexture);
@@ -2224,7 +2169,7 @@ void HelloVulkan::drawDebug(VkCommandBuffer cmdBuf) {
                        sizeof(PushConstantRaster), &m_pcRaster);
     vkCmdBindVertexBuffers(cmdBuf, 0, 1, &model.vertexBuffer.buffer, &offset);
     vkCmdBindIndexBuffer(cmdBuf, model.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
-    vkCmdDrawIndexed(cmdBuf, 6, 7200, 0, 0, 0);
+    vkCmdDrawIndexed(cmdBuf, 6, get_total_probes(), 0, 0, 0);
   }
 
   m_debug.endLabel(cmdBuf);
@@ -2279,4 +2224,73 @@ void HelloVulkan::createDebugPipeline() {
   m_debugPipeline = debugGpb.createPipeline();
 
   m_debug.setObjectName(m_debugPipeline, "Debug");
+}
+
+
+// Function to generate a random float between min and max
+float HelloVulkan::randomFloat(float min, float max)
+{
+  return min + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / (max - min)));
+}
+
+// Function to generate a random unit vector (axis of rotation)
+glm::vec3 HelloVulkan::randomUnitVector()
+{
+  float theta  = randomFloat(0.0f, 2.0f * glm::pi<float>());  // Random angle in radians
+  float z      = randomFloat(-1.0f, 1.0f);                    // Random z coordinate between -1 and 1
+  float radius = sqrt(1.0f - z * z);                          // Radius in the x-y plane
+
+  float x = radius * cos(theta);
+  float y = radius * sin(theta);
+
+  return glm::vec3(x, y, z);
+}
+
+// Function to generate a random rotation matrix
+glm::mat4 HelloVulkan::randomRotationMatrix()
+{
+  glm::vec3 axis  = randomUnitVector();
+  float     angle = randomFloat(0.0f, 2.0f * glm::pi<float>());  // Random angle in radians
+  return glm::rotate(glm::mat4(1.0f), angle, axis);
+}
+
+
+glm::mat4 HelloVulkan::glms_euler_xyz(glm::vec3 angles)
+{
+  glm::mat4 dest = glm::mat4(1.0f);
+  glm_euler_xyz2(angles, dest);
+  return dest;
+}
+
+void HelloVulkan::glm_euler_xyz2(glm::vec3 angles, glm::mat4 dest)
+{
+  float cx, cy, cz, sx, sy, sz, czsx, cxcz, sysz;
+
+  sx = sinf(angles.x);
+  cx = cosf(angles.x);
+  sy = sinf(angles.y);
+  cy = cosf(angles.y);
+  sz = sinf(angles.z);
+  cz = cosf(angles.z);
+
+  czsx = cz * sx;
+  cxcz = cx * cz;
+  sysz = sy * sz;
+
+  dest[0][0] = cy * cz;
+  dest[0][1] = czsx * sy + cx * sz;
+  dest[0][2] = -cxcz * sy + sx * sz;
+  dest[1][0] = -cy * sz;
+  dest[1][1] = cxcz - sx * sysz;
+  dest[1][2] = czsx + cx * sysz;
+  dest[2][0] = sy;
+  dest[2][1] = -cy * sx;
+  dest[2][2] = cx * cy;
+  dest[0][3] = 0.0f;
+  dest[1][3] = 0.0f;
+  dest[2][3] = 0.0f;
+  dest[3][0] = 0.0f;
+  dest[3][1] = 0.0f;
+  dest[3][2] = 0.0f;
+  dest[3][3] = 1.0f;
 }

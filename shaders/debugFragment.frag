@@ -20,6 +20,7 @@ layout(location = 0) out vec4 o_color;
 
 
 void main() {
+
         float dis = sqrt(dot(fragOffset, fragOffset));
         if(dis >= 1.0){
             discard;

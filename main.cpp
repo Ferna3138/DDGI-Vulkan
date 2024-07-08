@@ -38,12 +38,13 @@ void renderUI(HelloVulkan& helloVk, HelloVulkan::renderSceneDDGI& scene) {
     ImGui::SameLine();
     ImGui::RadioButton("Infinite", &helloVk.m_pcRaster.lightType, 1);
 
-    ImGui::SliderFloat3("Position", &helloVk.m_pcRaster.lightPosition.x, -50.f, 100.f);
-    ImGui::SliderFloat("Intensity", &helloVk.m_pcRaster.lightIntensity, 0.f, 50000.f); 
+    ImGui::SliderFloat3("Position", &helloVk.m_pcRaster.lightPosition.x, -20.f, 20.f);
+    ImGui::SliderFloat("Intensity", &helloVk.m_pcRaster.lightIntensity, 0.f, 25.f); 
   }
 
   if(ImGui::CollapsingHeader("Irradiance Field")) {
-
+    ImGui::SliderInt("Per frame probe updates", &scene.gi_per_frame_probes_update, 0, helloVk.get_total_probes());
+    scene.gi_recalculate_offsets = false;
       
     if(ImGui::SliderFloat3("Probe Grid Position", &scene.gi_probe_grid_position.x, -100.f, 100.f, "%2.3f")) {
       scene.gi_recalculate_offsets = true;
@@ -68,6 +69,10 @@ void renderUI(HelloVulkan& helloVk, HelloVulkan::renderSceneDDGI& scene) {
     ImGui::Checkbox("Use Backface Blending", &scene.gi_use_backface_blending);
     ImGui::Checkbox("Use Probe Offsetting", &scene.gi_use_probe_offsetting);
     ImGui::Checkbox("Use Probe Status", &scene.gi_use_probe_status);
+
+    ImGui::Checkbox("Debug border vs inside", &scene.gi_debug_border);
+    ImGui::Checkbox("Debug border type (corner, row, column)", &scene.gi_debug_border_type);
+    ImGui::Checkbox("Debug border source pixels", &scene.gi_debug_border_source);
   }
 }
 
@@ -161,7 +166,9 @@ int main(int argc, char** argv) {
   helloVk.initGUI(0);  // Using sub-pass 0
 
   // Creation of the example
-  helloVk.loadModel(nvh::findFile("media/scenes/sponza.obj", defaultSearchPaths, true), glm::mat4(1), 0.03f);
+  //helloVk.loadModel(nvh::findFile("media/scenes/sponza.obj", defaultSearchPaths, true), glm::mat4(1), 0.03f);
+  helloVk.loadModel(nvh::findFile("media/scenes/sponza/sponza_test.obj", defaultSearchPaths, true), glm::mat4(1), 1.5f);
+  //helloVk.loadModel(nvh::findFile("media/scenes/cornellBox.obj", defaultSearchPaths, true), glm::mat4(1), 0.5f);
 
   /*
   for(int i = 0; i < 7200; i++) {
@@ -179,7 +186,7 @@ int main(int argc, char** argv) {
     // Create a translation matrix using the position vector
     glm::mat4 mat = glm::translate(glm::mat4(1.0f), position);
     
-   helloVk.loadModel(nvh::findFile("media/scenes/cube2.obj", defaultSearchPaths, true), mat, 0.3f);
+   helloVk.loadModel(nvh::findFile("media/scenes/cube2.obj", defaultSearchPaths, true), mat, 0.1f);
 
   }*/
 

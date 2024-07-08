@@ -25,10 +25,11 @@ void main() {
     const int probe_index = pixel_coord.y + probe_update_offset;
     const int ray_index = pixel_coord.x;
 
+    /*
     const bool skip_probe = (probe_status[probe_index] == PROBE_STATUS_OFF) || (probe_status[probe_index] == PROBE_STATUS_UNINITIALIZED);
     if ( use_probe_status() && skip_probe ) {
         return;
-    }
+    }*/
 
     const int probe_counts = probe_counts.x * probe_counts.y * probe_counts.z;
     if ( probe_index >= probe_counts ) {
@@ -42,8 +43,8 @@ void main() {
     prd.radiance = vec3(0);
     prd.distance = 0;
 
-    float tMax     = 10000.0;
-    float tMin     = 0.001;
+    float tMax     = 100.0;
+    float tMin     = 0.0;
     traceRayEXT(topLevelAS,
                 gl_RayFlagsOpaqueEXT,
                 0xff,

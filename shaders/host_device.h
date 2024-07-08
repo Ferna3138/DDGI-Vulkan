@@ -73,6 +73,10 @@ struct PushConstantOffset {
   uint first_frame;
 };
 
+struct PushConstantStatus {
+  uint first_frame;
+};
+
 struct PushConstantSample {
   uint output_resolution_half;
 };

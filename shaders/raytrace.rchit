@@ -22,6 +22,9 @@ layout(buffer_reference, scalar) buffer Indices {ivec3 i[]; }; // Triangle indic
 layout(buffer_reference, scalar) buffer Materials {WaveFrontMaterial m[]; }; // Array of all materials on an object
 layout(buffer_reference, scalar) buffer MatIndices {int i[]; }; // Material ID for each triangle
 layout(set = 0, binding = eTlas) uniform accelerationStructureEXT topLevelAS;
+
+layout(set = 1, binding = eGlobals) uniform _GlobalUniforms { GlobalUniforms uni; };
+
 layout(set = 1, binding = eObjDescs, scalar) buffer ObjDesc_ { ObjDesc i[]; } objDesc;
 layout(set = 1, binding = eTextures) uniform sampler2D textureSamplers[];
 
@@ -64,6 +67,10 @@ void main() {
   if(pcRay.lightType == 0) {
     vec3 lDir      = pcRay.lightPosition - worldPos;
     lightDistance  = length(lDir);
+
+        float lRadius = 5.0;
+        float att = max(1.0 - (length(lDir) / lRadius), 0.0);
+
     lightIntensity = pcRay.lightIntensity / (lightDistance * lightDistance);
     L              = normalize(lDir);
   }
@@ -76,12 +83,27 @@ void main() {
   WaveFrontMaterial mat    = materials.m[matIdx];
 
 
+
+  /*
+  // Compute screen-space coordinates for the hit position
+  vec4 screenPos = uni.viewProj * vec4(worldPos, 1.0);
+  screenPos /= screenPos.w;  // Perspective divide
+  vec2 screenCoord = screenPos.xy * 0.5 + 0.5;  // Transform to [0, 1] range
+
+
+  vec3 indirectLight = texture(global_textures[6], screenCoord).xyz;
+
+  */
+
   // Diffuse
   vec3 diffuse = computeDiffuse(mat, L, worldNrm);
   if(mat.textureId >= 0) {
     uint txtId    = mat.textureId + objDesc.i[gl_InstanceCustomIndexEXT].txtOffset;
     vec2 texCoord = v0.texCoord * barycentrics.x + v1.texCoord * barycentrics.y + v2.texCoord * barycentrics.z;
-    diffuse *= texture(textureSamplers[nonuniformEXT(txtId)], texCoord).xyz;
+
+    vec3 loadedTexture = texture(textureSamplers[nonuniformEXT(txtId)], texCoord).xyz;
+
+    diffuse *= loadedTexture;
   }
 
   vec3  specular    = vec3(0);
