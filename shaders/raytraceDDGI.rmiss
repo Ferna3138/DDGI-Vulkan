@@ -15,6 +15,7 @@ layout(push_constant) uniform _PushConstantRay {
 
 void main() {
   prd.radiance = vec3( 0.529, 0.807, 0.921 );
-  //prd.radiance = vec3( 0.9, 0.1, 0.1 );
+  //prd.radiance = vec3( 0.0, 0.0, 0.0 );
+
   prd.distance = 10000.0f;
 }

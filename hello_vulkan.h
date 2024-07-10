@@ -181,12 +181,12 @@ public:
     bool      gi_debug_border_source         = false;
     uint32_t  gi_total_probes                = 0;
     float     gi_intensity                   = 0.8f;
-    bool      gi_use_visibility              = true;
+    bool      gi_use_visibility              = false;
     bool      gi_use_backface_smoothing      = true;
-    bool      gi_use_perceptual_encoding     = true;
+    bool      gi_use_perceptual_encoding     = false;
     bool      gi_use_backface_blending       = false;
-    bool      gi_use_probe_offsetting        = false;
-    bool      gi_recalculate_offsets         = false;  // When moving grid or changing spaces, recalculate offsets.
+    bool      gi_use_probe_offsetting        = true;
+    bool      gi_recalculate_offsets         = false;  // When moving grid or changing spaces -> recalculate offsets
     bool      gi_use_probe_status            = false;
     bool      gi_use_half_resolution         = false;
     bool      gi_use_infinite_bounces        = false;
@@ -194,7 +194,8 @@ public:
     int32_t   gi_per_frame_probes_update     = 1000;
   };
 
-
+  int m_currentTextureDebug = 0;
+  bool m_showDebugTextures     = true;
 
   uint32_t probe_count_x = 20;
   uint32_t probe_count_y = 20;

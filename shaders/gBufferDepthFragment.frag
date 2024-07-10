@@ -37,17 +37,10 @@ layout(binding = eTextures) uniform sampler2D[] textureSamplers;
 
 
 void main() {
-/*
-  vec4 origin    = uni.viewInverse * vec4(0, 0, 0, 1);
-  vec3 origin2 = origin.xyz;
-
-  o_color = vec4(i_worldPos, length(i_worldPos - origin2));
-  */
-  
+ 
   vec4 clipPos = uni.viewProj * vec4(i_worldPos, 1.0);
   vec3 ndcPos = clipPos.xyz / clipPos.w;
   float normalizedDepth = (ndcPos.z + 1.0) * 0.5;
 
-  o_color = vec4(normalizedDepth,0.0, 0.0, 1.0);
-  //o_color = vec4(1.0, 1.0, 1.0, 1.0);
+  o_color = vec4(normalizedDepth,normalizedDepth, normalizedDepth, 1.0);
 }

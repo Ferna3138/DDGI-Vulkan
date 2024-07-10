@@ -39,7 +39,7 @@ void renderUI(HelloVulkan& helloVk, HelloVulkan::renderSceneDDGI& scene) {
     ImGui::RadioButton("Infinite", &helloVk.m_pcRaster.lightType, 1);
 
     ImGui::SliderFloat3("Position", &helloVk.m_pcRaster.lightPosition.x, -20.f, 20.f);
-    ImGui::SliderFloat("Intensity", &helloVk.m_pcRaster.lightIntensity, 0.f, 25.f); 
+    ImGui::SliderFloat("Intensity", &helloVk.m_pcRaster.lightIntensity, 0.f, 100.f); 
   }
 
   if(ImGui::CollapsingHeader("Irradiance Field")) {
@@ -73,6 +73,11 @@ void renderUI(HelloVulkan& helloVk, HelloVulkan::renderSceneDDGI& scene) {
     ImGui::Checkbox("Debug border vs inside", &scene.gi_debug_border);
     ImGui::Checkbox("Debug border type (corner, row, column)", &scene.gi_debug_border_type);
     ImGui::Checkbox("Debug border source pixels", &scene.gi_debug_border_source);
+  }
+
+  if(ImGui::CollapsingHeader("Debug Textures")){
+    ImGui::Checkbox("Show Debug Textures", &helloVk.m_showDebugTextures);
+    ImGui::SliderInt("Current Texture", &helloVk.m_currentTextureDebug, 0, 6);
   }
 }
 

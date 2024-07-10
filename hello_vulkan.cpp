@@ -47,12 +47,16 @@ void HelloVulkan::updateUniformBuffer(const VkCommandBuffer& cmdBuf) {
   const float    aspectRatio = m_size.width / static_cast<float>(m_size.height);
   GlobalUniforms hostUBO     = {};
   const auto&    view        = CameraManip.getMatrix();
+  glm::vec3      pos         = CameraManip.getEye();
   glm::mat4      proj        = glm::perspectiveRH_ZO(glm::radians(CameraManip.getFov()), aspectRatio, 0.1f, 1000.0f);
   proj[1][1] *= -1;  // Inverting Y for Vulkan (not needed with perspectiveVK).
 
   hostUBO.viewProj    = proj * view;
   hostUBO.viewInverse = glm::inverse(view);
   hostUBO.projInverse = glm::inverse(proj);
+  hostUBO.view        = view;
+  hostUBO.projection  = proj;
+  hostUBO.position    = pos;
 
   // UBO on the device, and what stages access it.
   VkBuffer deviceUBO      = m_bGlobals.buffer;
@@ -469,8 +473,7 @@ void HelloVulkan::rasterize(const VkCommandBuffer& cmdBuf) {
     m_pcRaster.objIndex    = inst.objIndex;  // Telling which object is drawn
     m_pcRaster.modelMatrix = inst.transform;
 
-    vkCmdPushConstants(cmdBuf, m_pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0,
-                       sizeof(PushConstantRaster), &m_pcRaster);
+    vkCmdPushConstants(cmdBuf, m_pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(PushConstantRaster), &m_pcRaster);
     vkCmdBindVertexBuffers(cmdBuf, 0, 1, &model.vertexBuffer.buffer, &offset);
     vkCmdBindIndexBuffer(cmdBuf, model.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
     vkCmdDrawIndexed(cmdBuf, model.nbIndices, 1, 0, 0, 0);
@@ -643,7 +646,8 @@ void HelloVulkan::drawPost(VkCommandBuffer cmdBuf, bool useIndirect, bool showPr
 
   pcPost.indirect_enabled = useIndirect == true ? 1 : 0;
   pcPost.debug_enabled    = showProbes == true ? 1 : 0;
-
+  pcPost.debug_texture    = m_currentTextureDebug;
+  pcPost.show_textures    = m_showDebugTextures == true ? 1 : 0;
   setViewport(cmdBuf);
 
   auto aspectRatio = static_cast<float>(m_size.width) / static_cast<float>(m_size.height);
@@ -1443,6 +1447,8 @@ void HelloVulkan::prepareDraws(renderSceneDDGI& scene) {
   createDDGIConstantsBuffer();
   createDDGIStatusBuffer();
   
+
+
   // Texture creation
   //-----------------
   // Radiance Texture
@@ -1478,7 +1484,7 @@ void HelloVulkan::prepareDraws(renderSceneDDGI& scene) {
 
   //----------------------
   // Irradiance Texture 6x6 plus 2 additional pixel border to allow bilinear interpolation
-  const int32_t octahedral_irradiance_size = irradiance_probe_size + 2;
+  const int octahedral_irradiance_size = irradiance_probe_size + 2;
   irradiance_atlas_width               = (octahedral_irradiance_size * probe_count_x * probe_count_y);
   irradiance_atlas_height              = (octahedral_irradiance_size * probe_count_z);
   //m_irradianceImage = createStorageImage(cmdBuf, m_device, m_physicalDevice, irradiance_atlas_width, irradiance_atlas_height, VK_FORMAT_R16G16B16A16_SFLOAT);
@@ -1495,7 +1501,7 @@ void HelloVulkan::prepareDraws(renderSceneDDGI& scene) {
 
 
   // Visibility Texture
-  const int32_t octahedral_visibility_size = visibility_probe_size + 2;
+  const int octahedral_visibility_size = visibility_probe_size + 2;
   visibility_atlas_width                   = (octahedral_visibility_size * probe_count_x * probe_count_y);
   visibility_atlas_height                  = (octahedral_visibility_size * probe_count_z);
   //m_visibilityImage = createStorageImage(cmdBuf, m_device, m_physicalDevice, visibility_atlas_width, visibility_atlas_height, VK_FORMAT_R16G16_SFLOAT);
@@ -1570,7 +1576,7 @@ void HelloVulkan::DDGIBegin(const VkCommandBuffer& cmdBuf, const glm::vec4& clea
   vkCmdBindDescriptorSets(cmdBuf, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, m_DDGIPipelineLayout, 0, (uint32_t)descSets.size(), descSets.data(), 0, nullptr);
   vkCmdPushConstants(cmdBuf, m_DDGIPipelineLayout, VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR, 0, sizeof(PushConstantRay), &m_pcRay);
   const uint32_t probe_count = offsets_calculations_count >= 0 ? get_total_probes() : per_frame_probe_updates;
-  vkCmdTraceRaysKHR(cmdBuf, &m_DDGIrgenRegion, &m_DDGImissRegion, &m_DDGIhitRegion, &m_DDGIcallRegion, probe_rays, probe_count, 1);
+  vkCmdTraceRaysKHR(cmdBuf, &m_DDGIrgenRegion, &m_DDGImissRegion, &m_DDGIhitRegion, &m_DDGIcallRegion, probe_rays, get_total_probes(), 1);
 
   {
     nvvk::CommandPool genCmdBuf(m_device, m_graphicsQueueIndex);
@@ -1580,7 +1586,7 @@ void HelloVulkan::DDGIBegin(const VkCommandBuffer& cmdBuf, const glm::vec4& clea
   }
   m_debug.endLabel(cmdBuf);
 
-
+  
   if(offsets_calculations_count >= 0) {
     --offsets_calculations_count;
     first_frame = offsets_calculations_count == 23 ? 1 : 0;
@@ -1607,7 +1613,7 @@ void HelloVulkan::DDGIBegin(const VkCommandBuffer& cmdBuf, const glm::vec4& clea
     m_debug.endLabel(cmdBuf);
   }
 
-
+  
   m_debug.beginLabel(cmdBuf, "Status Compute Begin");
   {
     nvvk::CommandPool genCmdBuf(m_device, m_graphicsQueueIndex);
@@ -1627,7 +1633,7 @@ void HelloVulkan::DDGIBegin(const VkCommandBuffer& cmdBuf, const glm::vec4& clea
 
   m_debug.endLabel(cmdBuf);
 
-
+  
 
   m_debug.beginLabel(cmdBuf, "Irradiance Compute Begin");
   {
@@ -1645,7 +1651,7 @@ void HelloVulkan::DDGIBegin(const VkCommandBuffer& cmdBuf, const glm::vec4& clea
   vkCmdDispatch(cmdBuf, glm::ceil(irradiance_atlas_width / 8.0f), glm::ceil(irradiance_atlas_height / 8.0f), 1);
   m_debug.endLabel(cmdBuf);
 
-
+  
 
   m_debug.beginLabel(cmdBuf, "Visibility Compute Begin");
   // Probe Update Visibility
@@ -1671,7 +1677,7 @@ void HelloVulkan::DDGIBegin(const VkCommandBuffer& cmdBuf, const glm::vec4& clea
     genCmdBuf.submitAndWait(cmdBuf);
   }
   m_debug.endLabel(cmdBuf);
-
+  
 
 
   m_debug.beginLabel(cmdBuf, "Sample Compute Begin");
@@ -1922,10 +1928,13 @@ void HelloVulkan::updateDDGIConstantsBuffer(const VkCommandBuffer& cmdBuf, rende
   hostDDGIConstBuffer.irradiance_texture_width  = irradiance_atlas_width;
   hostDDGIConstBuffer.irradiance_texture_height = irradiance_atlas_height;
   hostDDGIConstBuffer.irradiance_side_length    = irradiance_probe_size;
+
   hostDDGIConstBuffer.probe_rays                = probe_rays;
+
   hostDDGIConstBuffer.visibility_texture_width  = visibility_atlas_width;
   hostDDGIConstBuffer.visibility_texture_height = visibility_atlas_height;
   hostDDGIConstBuffer.visibility_side_length    = visibility_probe_size;
+
   hostDDGIConstBuffer.probe_update_offset       = probe_update_offset;
   hostDDGIConstBuffer.probe_update_count        = per_frame_probe_updates;
 

@@ -49,5 +49,5 @@ void main() {
                         + fragOffset.y * probe_sphere_scale * cameraUpWorld;
 
     //gl_Position = uni.viewProj * vec4(positionWorld, 1.0);
-    gl_Position = uni.viewProj * vec4(positionWorld, 1.0);
+    gl_Position = uni.projection * uni.view * vec4(positionWorld, 1.0);
 }

@@ -75,6 +75,7 @@ void main() {
         // Computing the normal at hit position
         const vec3 nrm      = v0.nrm * barycentrics.x + v1.nrm * barycentrics.y + v2.nrm * barycentrics.z;
         const vec3 worldNrm = normalize(vec3(nrm * gl_WorldToObjectEXT));  // Transforming the normal to world space
+        
 
         // Vector toward the light
         vec3  L;
@@ -104,15 +105,14 @@ void main() {
             diffuse *= texture(textureSamplers[nonuniformEXT(txtId)], texCoord).xyz;
         }
 
-        vec4 origin    = uni.viewInverse * vec4(0, 0, 0, 1);
 
-        //vec3 specular = computeSpecular(mat, gl_WorldRayDirectionEXT, L, worldNrm);
+        vec3 origin = uni.position;
 
         vec3 hitValue = vec3(lightIntensity * (diffuse));
 
         // infinite bounces
         if ( use_infinite_bounces() ) {
-            hitValue += hitValue * sample_irradiance( pos, nrm, origin.xyz ) * infinite_bounces_multiplier;
+            hitValue += hitValue * sample_irradiance( pos, worldNrm, origin ) * infinite_bounces_multiplier;
         }
 
         radiance = hitValue;

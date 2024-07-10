@@ -58,6 +58,9 @@ struct GlobalUniforms {
   mat4 viewProj;     // Camera view * projection
   mat4 viewInverse;  // Camera inverse view matrix
   mat4 projInverse;  // Camera inverse projection matrix
+  mat4 view;
+  mat4 projection;
+  vec3 position;
 };
 
 // Push constant structure for the raster
@@ -84,6 +87,8 @@ struct PushConstantSample {
 struct PushConstantPost {
   uint indirect_enabled;
   uint debug_enabled;
+  uint  debug_texture;
+  uint  show_textures;
   float aspectRatio;
 };
 

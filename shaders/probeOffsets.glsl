@@ -83,9 +83,10 @@ void main() {
 
   // Check if a fourth of the rays was a backface, we can assume the probe is inside a geometry.
   const bool inside_geometry = (float(backfaces_count) / probe_rays) > 0.25f;
+
   if(inside_geometry && (closest_backface_index != -1)) {
-    // Calculate the backface direction.
-    // NOTE: Distance is always positive
+    // Calculate the backface direction
+    // Distance is always positive
     const vec3 closest_backface_direction = closest_backface_distance * normalize(mat3(random_rotation) * spherical_fibonacci(closest_backface_index, probe_rays));
 
     // Find the maximum offset inside the cell.
@@ -100,17 +101,15 @@ void main() {
     // Move the offset in the opposite direction of the backface one.
     full_offset = current_offset.xyz - closest_backface_direction * direction_scale_factor;
   }
-  else if(closest_frontface_distance < 0.05f) {
-    // In this case we have a very small hit distance.
+  else if(closest_frontface_distance < 0.05f) { // In this case we have a very small hit distance.
 
     // Ensure that we never move through the farthest frontface
     // Move minimum distance to ensure not moving on a future iteration.
-    const vec3 farthest_direction =
-        min(0.2f, farthest_frontface_distance)
-        * normalize(mat3(random_rotation) * spherical_fibonacci(farthest_frontface_index, probe_rays));
+    const vec3 farthest_direction = min(0.2f, farthest_frontface_distance) * normalize(mat3(random_rotation) * spherical_fibonacci(farthest_frontface_index, probe_rays));
     const vec3 closest_direction = normalize(mat3(random_rotation) * spherical_fibonacci(closest_frontface_index, probe_rays));
-    // The farthest frontface may also be the closest if the probe can only
-    // see one surface. If this is the case, don't move the probe.
+    
+    /* The farthest frontface may also be the closest if the probe can only
+    see one surface. If this is the case, don't move the probe */
     if(dot(farthest_direction, closest_direction) < 0.5f) {
       full_offset = current_offset.xyz + farthest_direction;
     }

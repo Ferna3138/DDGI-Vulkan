@@ -55,7 +55,7 @@ void main() {
     vec3  lDir     = pcRaster.lightPosition - i_worldPos;
     float d        = length(lDir);
     float attenuation = max(1.0 - (d / lightRadius), 0.0);
-    lightIntensity = pcRaster.lightIntensity * attenuation / (d * d);
+    lightIntensity = pcRaster.lightIntensity / (d * d);
     L              = normalize(lDir);
   }
   else {

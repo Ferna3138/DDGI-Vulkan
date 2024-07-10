@@ -49,15 +49,18 @@ vec2 sign_not_zero2(in vec2 v) {
 }
 
 
-vec2 octahedral_encode(vec3 n) {
-  // Project the sphere onto the octahedron, and then onto the xy plane
-  vec2 p = n.xy * (1.0f / (abs(n.x) + abs(n.y) + abs(n.z)));
-  // Reflect the folds of the lower hemisphere over the diagonals
-  return (n.z < 0.0f) ? ((1.0 - abs(p.yx)) * sign_not_zero2(p)) : p;
+// Assumes that v is a unit vector. The result is an octahedral vector on the [-1, +1] square.
+vec2 oct_encode(in vec3 v) {
+  float l1norm = abs(v.x) + abs(v.y) + abs(v.z);
+  vec2  result = v.xy * (1.0 / l1norm);
+  if(v.z < 0.0) {
+    result = (1.0 - abs(result.yx)) * sign_not_zero2(result.xy);
+  }
+  return result;
 }
 
 
 void main() {
-o_color = vec4(octahedral_encode(i_worldNrm), 0.0, 0.0);
+	o_color = vec4(oct_encode(i_worldNrm), 0.0, 1.0);
  // o_color = vec4(i_worldNrm, 1.0);
 }

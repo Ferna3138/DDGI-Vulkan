@@ -42,7 +42,6 @@ void main(){
   bool border_pixel = ((gl_GlobalInvocationID.x % probe_with_border_side) == 0) || ((gl_GlobalInvocationID.x % probe_with_border_side) == probe_last_pixel);
   border_pixel = border_pixel || ((gl_GlobalInvocationID.y % probe_with_border_side) == 0) || ((gl_GlobalInvocationID.y % probe_with_border_side) == probe_last_pixel);
 
-  // Perform full calculations
   if(!border_pixel) {
     vec4 result = vec4(0);
 
@@ -71,7 +70,7 @@ void main(){
         continue;
       }
 
-      // TODO: spacing is 1.0f
+
       float probe_max_ray_distance = 1.0f * 1.5f;
 
       // Increase or decrease the filtered distance value's "sharpness"
@@ -103,7 +102,7 @@ void main(){
     result.rg           = mix(result.rg, previous_value, hysteresis);
     imageStore(visibility_image, coords.xy, vec4(result.rg, 0, 1));
 
-    // NOTE: returning here.
+
     return;
   }
 
